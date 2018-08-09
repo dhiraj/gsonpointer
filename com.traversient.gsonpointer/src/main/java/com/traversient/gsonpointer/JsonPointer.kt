@@ -21,36 +21,24 @@ import com.google.gson.JsonObject
  * {"foo":{"bar":"baz"}}
 ` *
  */
-class JsonPointer(val element: JsonElement) {
+class JsonPointer internal constructor(val element: JsonElement) {
 
-    fun at(pointer: String): Any{
-        val elem = dereference(pointer)
-        return when{
-            elem == null -> ""
-            elem.isJsonObject -> elem.asJsonObject
-            elem.isJsonArray -> elem.asJsonArray
-            elem.isJsonPrimitive && elem.asJsonPrimitive.isBoolean -> elem.asBoolean
-            elem.isJsonPrimitive && elem.asJsonPrimitive.isString -> elem.asString
-            elem.isJsonPrimitive && elem.asJsonPrimitive.isNumber -> elem.asNumber
-            else -> ""
-        }
-    }
-
-    fun dereference(pointer: String, generation: Int = 0): JsonElement? {
+    @JvmOverloads
+    fun at(pointer: String, generation: Int = 0): JsonElement {
         val list = getPath(pointer, false)
         return list[list.size - 1 - generation]
     }
 
     operator fun set(pointer: String, value: JsonElement) {
         val last = getLastElement(pointer)
-        val `object` = last.element!!.asJsonObject
+        val `object` = last.element.asJsonObject
         `object`.remove(last.name)
         `object`.add(last.name, value)
     }
 
-    private fun getPath(pointer: String, mutative: Boolean): List<JsonElement?> {
+    private fun getPath(pointer: String, mutative: Boolean): List<JsonElement> {
         val tokens = pointer.split("/".toRegex()).toTypedArray()
-        val ret = ArrayList<JsonElement?>(tokens.size)
+        val ret = ArrayList<JsonElement>(tokens.size)
         var element: JsonElement? = null
         for (i in tokens.indices) {
             val token = unescape(tokens[i])
@@ -81,10 +69,10 @@ class JsonPointer(val element: JsonElement) {
                             null
                     }
                 }
-                ret.add(element)
                 if (element == null) {
                     break
                 }
+                ret.add(element)
             }
         }
         return ret
@@ -144,7 +132,7 @@ class JsonPointer(val element: JsonElement) {
         }
     }
 
-    private class Element(internal val element: JsonElement?, internal val name: String)
+    private class Element(internal val element: JsonElement, internal val name: String)
 }
 
 //Extension property on JsonElement to get a pointer
@@ -153,3 +141,42 @@ val JsonElement.pointer: JsonPointer
         return JsonPointer(this)
     }
 
+val JsonElement.safeNumber: Number
+    get() {
+        if (this.isJsonPrimitive && !this.isJsonNull && this.asJsonPrimitive.isNumber) {
+            return this.asNumber
+        }
+        return 0
+    }
+
+val JsonElement.safeString: String
+    get() {
+        if (this.isJsonPrimitive && !this.isJsonNull && this.asJsonPrimitive.isString) {
+            return this.asString
+        }
+        return ""
+    }
+
+val JsonElement.safeBoolean: Boolean
+    get() {
+        if (this.isJsonPrimitive && !this.isJsonNull && this.asJsonPrimitive.isBoolean) {
+            return this.asBoolean
+        }
+        return false
+    }
+
+val JsonElement.safeJsonObject: JsonObject
+    get() {
+        if (!this.isJsonNull && this.isJsonObject) {
+            return this.asJsonObject
+        }
+        return JsonObject()
+    }
+
+val JsonElement.safeJsonArray: JsonArray
+    get() {
+        if (!this.isJsonNull && this.isJsonArray) {
+            return this.asJsonArray
+        }
+        return JsonArray()
+    }
