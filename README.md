@@ -42,7 +42,7 @@ Once you have a JsonPointer, you can directly access a JsonPointer anywhere in t
     //message is the first error String, "Enter a valid email address"
 ```
 
-###Safe value retreival 
+### Safe value retreival 
 The `at()` function always returns a valid JsonElement, even when there is no match. You can use the standard `isJsonPrimitive` or other similar methods to determine what you got back. You can more easily use the provided convenience get properties to get either the actual value at the node or a default value that you can check and flow against.
 
 * `JsonElement.safeNumber` returns any `Number` found at the pointer, or a `0`
