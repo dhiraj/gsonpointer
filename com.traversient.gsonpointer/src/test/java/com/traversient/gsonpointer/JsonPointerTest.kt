@@ -1,12 +1,9 @@
 package com.traversient.gsonpointer
 
+import com.google.gson.*
 import org.junit.Test
 
 import org.junit.Assert.*
-import com.google.gson.JsonElement
-import com.google.gson.JsonObject
-import com.google.gson.JsonParser
-import com.google.gson.JsonPrimitive
 
 import com.traversient.gsonpointer.JsonPointer
 
@@ -82,6 +79,35 @@ class JsonPointerTest {
             "      \"m~n\": 8\n" +
             "   }"
 
+    private val JSON_Multi = "{\n" +
+            "  \"widget\": {\n" +
+            "    \"debug\": \"on\",\n" +
+            "    \"window\": {\n" +
+            "      \"title\": \"Sample Konfabulator Widget\",\n" +
+            "      \"name\": \"main_window\",\n" +
+            "      \"width\": 500,\n" +
+            "      \"height\": 500\n" +
+            "    },\n" +
+            "    \"image\": {\n" +
+            "      \"src\": \"Images/Sun.png\",\n" +
+            "      \"name\": \"sun1\",\n" +
+            "      \"hOffset\": 250,\n" +
+            "      \"vOffset\": 250,\n" +
+            "      \"alignment\": \"center\"\n" +
+            "    },\n" +
+            "    \"text\": {\n" +
+            "      \"data\": \"Click Here\",\n" +
+            "      \"size\": 36,\n" +
+            "      \"style\": \"bold\",\n" +
+            "      \"name\": \"text1\",\n" +
+            "      \"hOffset\": 250,\n" +
+            "      \"vOffset\": 100,\n" +
+            "      \"alignment\": \"center\",\n" +
+            "      \"onMouseUp\": \"sun1.opacity = (sun1.opacity / 100) * 90;\"\n" +
+            "    }\n" +
+            "  }\n" +
+            "}"
+
     @Test
     @Throws(Exception::class)
             /**
@@ -90,18 +116,18 @@ class JsonPointerTest {
     fun rfc6901Test() {
         val root = JsonParser().parse(JSON_6901)
         val json = root.pointer
-        assertEquals(root, json.dereference(""))
-        assertEquals(JsonParser().parse("[\"bar\", \"baz\"]"), json.dereference("/foo"))
-        assertEquals("bar", json.dereference("/foo/0")!!.getAsString())
-        assertEquals(0, json.dereference("/")!!.getAsInt())
-        assertEquals(1, json.dereference("/a~1b")!!.getAsInt())
-        assertEquals(2, json.dereference("/c%d")!!.getAsInt())
-        assertEquals(3, json.dereference("/e^f")!!.getAsInt())
-        assertEquals(4, json.dereference("/g|h")!!.getAsInt())
-        assertEquals(5, json.dereference("/i\\j")!!.getAsInt())
-        assertEquals(6, json.dereference("/k\"l")!!.getAsInt())
-        assertEquals(7, json.dereference("/ ")!!.getAsInt())
-        assertEquals(8, json.dereference("/m~0n")!!.getAsInt())
+        assertEquals(root, json.at(""))
+        assertEquals(JsonParser().parse("[\"bar\", \"baz\"]"), json.at("/foo"))
+        assertEquals("bar", json.at("/foo/0")!!.getAsString())
+        assertEquals(0, json.at("/")!!.getAsInt())
+        assertEquals(1, json.at("/a~1b")!!.getAsInt())
+        assertEquals(2, json.at("/c%d")!!.getAsInt())
+        assertEquals(3, json.at("/e^f")!!.getAsInt())
+        assertEquals(4, json.at("/g|h")!!.getAsInt())
+        assertEquals(5, json.at("/i\\j")!!.getAsInt())
+        assertEquals(6, json.at("/k\"l")!!.getAsInt())
+        assertEquals(7, json.at("/ ")!!.getAsInt())
+        assertEquals(8, json.at("/m~0n")!!.getAsInt())
     }
 
 
@@ -118,7 +144,7 @@ class JsonPointerTest {
     fun getRootTest() {
         val expected = JsonParser().parse(JSON)
         val json = expected.pointer
-        val actual = json.dereference("")
+        val actual = json.at("")
         assertEquals(expected, actual)
     }
 
@@ -127,7 +153,7 @@ class JsonPointerTest {
     fun getSimpleStringTest() {
         val json = JsonParser().parse(JSON).pointer
         val expected = "library of congress"
-        val actual = json.dereference("/library/name")!!.getAsString()
+        val actual = json.at("/library/name")!!.getAsString()
         assertEquals(expected, actual)
     }
 
@@ -136,7 +162,7 @@ class JsonPointerTest {
     fun getSimpleStringInArrayTest() {
         val json = JsonParser().parse(JSON).pointer
         val expected = "sci-fi"
-        val actual = json.dereference("/library/section/0/name")!!.getAsString()
+        val actual = json.at("/library/section/0/name")!!.getAsString()
         assertEquals(expected, actual)
     }
 
@@ -145,7 +171,7 @@ class JsonPointerTest {
     fun getDeepArrayTest() {
         val json = JsonParser().parse(JSON).pointer
         val expected = "Jerry Pournelle"
-        val actual = json.dereference("/library/section/0/title/0/book/author/1")!!.getAsString()
+        val actual = json.at("/library/section/0/title/0/book/author/1")!!.getAsString()
         assertEquals(expected, actual)
     }
 
@@ -156,17 +182,8 @@ class JsonPointerTest {
         val expected = "hello world"
         val pointer = "/this/is/a/new/thing"
         json.set(pointer, JsonPrimitive(expected))
-        val actual = json.dereference(pointer)!!.getAsString()
+        val actual = json.at(pointer)!!.getAsString()
         assertEquals(expected, actual)
-    }
-
-    @Test
-    fun alwaysValidValue() {
-        val json = JsonParser().parse(JSON).pointer
-        assertTrue(json.at("/library") is JsonObject)
-        assertEquals(json.at("/"), "")
-        assertEquals(json.at("/nothing"), "")
-        assertEquals(json.at("/"), "")
     }
 
     @Test
@@ -178,11 +195,11 @@ class JsonPointerTest {
         val thingPointer = "/4/this/is/a/0/new/thing"
         val pointer = JsonParser().parse(originalJson).pointer
 
-        assertEquals(null, pointer.dereference(thingPointer))
+        assertEquals(JsonArray(), pointer.at(thingPointer))
         pointer.set(thingPointer, JsonPrimitive(originalValue))
-        assertEquals(originalValue, pointer.dereference(thingPointer)!!.getAsString())
+        assertEquals(originalValue, pointer.at(thingPointer)!!.getAsString())
         pointer.set(thingPointer, JsonPrimitive(expectedValue))
-        assertEquals(expectedValue, pointer.dereference(thingPointer)!!.getAsString())
+        assertEquals(expectedValue, pointer.at(thingPointer)!!.getAsString())
     }
 
     @Test
@@ -194,11 +211,11 @@ class JsonPointerTest {
         val thingPointer = "/this/is/a/0/new/thing"
         val pointer = JsonParser().parse(originalJson).pointer
 
-        assertEquals(null, pointer.dereference(thingPointer))
+        assertEquals(JsonObject(), pointer.at(thingPointer))
         pointer.set(thingPointer, JsonPrimitive(originalValue))
-        assertEquals(originalValue, pointer.dereference(thingPointer)!!.getAsString())
+        assertEquals(originalValue, pointer.at(thingPointer)!!.getAsString())
         pointer.set(thingPointer, JsonPrimitive(expectedValue))
-        assertEquals(expectedValue, pointer.dereference(thingPointer)!!.getAsString())
+        assertEquals(expectedValue, pointer.at(thingPointer)!!.getAsString())
     }
 
     @Test
@@ -210,11 +227,11 @@ class JsonPointerTest {
         val thingPointer = "/this/is/a/0/new/thing"
         val pointer = JsonParser().parse(originalJson).pointer
 
-        assertEquals(null, pointer.dereference(thingPointer))
+        assertEquals(JsonObject(), pointer.at(thingPointer))
         pointer.set(thingPointer, JsonPrimitive(originalValue))
-        assertEquals(originalValue, pointer.dereference(thingPointer)!!.getAsBoolean())
+        assertEquals(originalValue, pointer.at(thingPointer)!!.getAsBoolean())
         pointer.set(thingPointer, JsonPrimitive(expectedValue))
-        assertEquals(expectedValue, pointer.dereference(thingPointer)!!.getAsBoolean())
+        assertEquals(expectedValue, pointer.at(thingPointer)!!.getAsBoolean())
     }
 
     @Test
@@ -225,9 +242,9 @@ class JsonPointerTest {
         val reasonPointer = "/data/extensions/currentVisit/reason"
         val pointer = JsonParser().parse(originalJson).pointer
 
-        assertEquals(null, pointer.dereference(reasonPointer))
+        assertEquals(JsonObject(), pointer.at(reasonPointer))
         pointer.set(reasonPointer, JsonPrimitive(expectedValue))
-        assertEquals(expectedValue, pointer.dereference(reasonPointer)!!.getAsString())
+        assertEquals(expectedValue, pointer.at(reasonPointer)!!.getAsString())
     }
 
     @Test
@@ -240,13 +257,13 @@ class JsonPointerTest {
         val value2 = 1
         val value3 = true
 
-        assertEquals(null, pointer.dereference(thingPointer))
+        assertEquals(JsonObject(), pointer.at(thingPointer))
         pointer.set(thingPointer, JsonPrimitive(value1))
-        assertEquals(value1, pointer.dereference(thingPointer)!!.getAsString())
+        assertEquals(value1, pointer.at(thingPointer)!!.getAsString())
         pointer.set(thingPointer, JsonPrimitive(value2))
-        assertEquals(value2, pointer.dereference(thingPointer)!!.getAsInt())
+        assertEquals(value2, pointer.at(thingPointer)!!.getAsInt())
         pointer.set(thingPointer, JsonPrimitive(value3))
-        assertEquals(value3, pointer.dereference(thingPointer)!!.getAsBoolean())
+        assertEquals(value3, pointer.at(thingPointer)!!.getAsBoolean())
     }
 
     @Test
@@ -257,9 +274,9 @@ class JsonPointerTest {
         val reasonPointer = "/foo/bar"
         val pointer = JsonParser().parse(originalJson).pointer
 
-        assertEquals(null, pointer.dereference(reasonPointer))
+        assertEquals(JsonObject(), pointer.at(reasonPointer))
         pointer.set(reasonPointer, JsonPrimitive(expectedValue))
-        assertEquals(expectedValue, pointer.dereference(reasonPointer)!!.getAsString())
+        assertEquals(expectedValue, pointer.at(reasonPointer)!!.getAsString())
         println(pointer.element.toString())
     }
 }

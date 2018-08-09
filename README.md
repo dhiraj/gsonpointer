@@ -6,7 +6,7 @@ Adds [JSON Pointer (RFC 6901)](https://tools.ietf.org/html/rfc6901) support to
 and modifying original fork by [John Lombardo](https://github.com/johnnylambada/gson). 
 
 ## Usage
-This library provides a simple lookup implementation, that tries to always provide a valid Kotlin object for quick and easy dereferencing and direct usage of JSON pointers to read values from Gson's JsonParser when you don't want to keep making specific Kotlin data classes for one off use cases or specific error handling.
+This library provides a simple lookup implementation, that tries to always provide a valid Kotlin object for quick and easy dereferencing and direct usage of JSON pointers to read values from Gson's JsonParser when you don't want to keep making specific Kotlin data classes for one off use cases or specific error handling. By using the provided _safeX_ extension properties on JsonElement, you can rest assured that you'll always get a good value back instead of an Exception at runtime.
 
 ### Parse JSON using Gson
 Consider a JSON error response that you're receiving from your API like this:
@@ -36,16 +36,22 @@ Once you have a JsonElement you can get a JsonPointer with it as root, using the
     //pointer is JsonPointer    
 ```
 
-Once you have a JsonPointer, you can directly access values anywhere in the whole JSON tree using pointer syntax:
+Once you have a JsonPointer, you can directly access a JsonPointer anywhere in the whole JSON tree using pointer syntax:
 ```kotlin
-    val message = pointer.at("/email/0")
+    val message = pointer.at("/email/0").safeString
     //message is the first error String, "Enter a valid email address"
 ```
 
-**Note:** The `at()` function always tries to return a valid value. It will never return a null. In case of a JSON null, it will return an empty string, `""`
+###Safe value retreival 
+The `at()` function always returns a valid JsonElement, even when there is no match. You can use the standard `isJsonPrimitive` or other similar methods to determine what you got back. You can more easily use the provided convenience get properties to get either the actual value at the node or a default value that you can check and flow against.
 
-### Access a JsonElement
-**(Optional)** In case you _do_ need to get access to a JsonElement and not the actual value within it, you can use the `dereference()` method which will return a normal `JsonElement` for further evaluation.
+* `JsonElement.safeNumber` returns any `Number` found at the pointer, or a `0`
+* `JsonElement.safeString` returns any `String` found at the pointer, or a `""`
+* `JsonElement.safeBoolean` returns any `Boolean` found at the pointer, or a `false`
+* `JsonElement.safeJsonObject` returns any `JsonObject` found at the pointer, or a `JsonObject()`, which works out to an empty JSON object:  `{}`
+* `JsonElement.safeJsonArray` returns any `JsonArray` found at the pointer, or a `JsonArray()`, which works out to an empty JSON Array, `[]`
+
+
 
 ## Installation
 GsonPointer uses JitPack.io to distribute the library.
